@@ -103,22 +103,49 @@ Loader {
 
           Item {
             anchors.fill: parent
+            focus: true
+
+            // Key handler - forward to fingerprint layer first
+            Keys.onPressed: function (event) {
+              if (fingerprintAuthLayer.handleKeyPress(event)) {
+                event.accepted = true;
+                return;
+              }
+              if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                lockContext.tryUnlock();
+                event.accepted = true;
+              }
+            }
 
             // Mouse area to trigger focus on cursor movement (workaround for Hyprland focus issues)
             MouseArea {
               anchors.fill: parent
               hoverEnabled: true
-              acceptedButtons: Qt.NoButton
+              acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
               onPositionChanged: {
                 if (passwordInput) {
                   passwordInput.forceActiveFocus();
                 }
               }
+              onClicked: {
+                if (!fingerprintAuthLayer.handleClick() && passwordInput) {
+                  passwordInput.forceActiveFocus();
+                }
+              }
+            }
+
+            // Fingerprint authentication layer (shield + indicator)
+            // This component is isolated to minimize upstream merge conflicts
+            FingerprintAuthLayer {
+              id: fingerprintAuthLayer
+              lockContext: lockContext
+              visible: Settings.data.general.fingerprintEnabled && FingerprintService.available
             }
 
             // Header with avatar, welcome, time, date
             LockScreenHeader {
               id: headerComponent
+              visible: !fingerprintAuthLayer.shieldActive
             }
 
             // Info notification
@@ -132,7 +159,7 @@ Loader {
               color: Color.mTertiary
               border.color: Color.mTertiary
               border.width: Style.borderS
-              visible: lockContext.showInfo && lockContext.infoMessage
+              visible: !fingerprintAuthLayer.shieldActive && lockContext.showInfo && lockContext.infoMessage
               opacity: visible ? 1.0 : 0.0
 
               RowLayout {
@@ -173,7 +200,7 @@ Loader {
               color: Color.mError
               border.color: Color.mError
               border.width: Style.borderS
-              visible: lockContext.showFailure && lockContext.errorMessage
+              visible: !fingerprintAuthLayer.shieldActive && lockContext.showFailure && lockContext.errorMessage
               opacity: visible ? 1.0 : 0.0
 
               RowLayout {
@@ -203,15 +230,10 @@ Loader {
               }
             }
 
-            // Hidden input that receives actual text
+            // Hidden text input for password capture
             TextInput {
               id: passwordInput
-              width: 0
-              height: 0
               visible: false
-              enabled: !lockContext.unlockInProgress || lockContext.waitingForPassword
-              font.pointSize: Style.fontSizeM
-              color: Color.mPrimary
               echoMode: TextInput.Password
               passwordCharacter: "•"
               passwordMaskDelay: 0
@@ -234,6 +256,18 @@ Loader {
               batteryIndicator: batteryIndicator
               keyboardLayout: keyboardLayout
               passwordInput: passwordInput
+              visible: !fingerprintAuthLayer.shieldActive
+            }
+          }
+
+          // Reset state when lock screen activates
+          Connections {
+            target: lockSession
+            function onLockedChanged() {
+              if (lockSession.locked) {
+                lockContext.resetForNewSession();
+                fingerprintAuthLayer.reset();
+              }
             }
           }
         }
