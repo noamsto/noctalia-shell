@@ -561,6 +561,7 @@
   "lock-screen": {
     "authenticating": "認証中...",
     "password": "パスワードを入力...",
+    "press-to-unlock": "キーを押してロック解除",
     "restart": "再起動",
     "shut-down": "シャットダウン"
   },
@@ -1234,8 +1235,6 @@
       "collision-official-version-exists": "このプラグインの公式バージョンはすでにインストールされています",
       "filter-downloaded": "ダウンロード済み",
       "filter-not-downloaded": "未ダウンロード",
-      "filter-tags-description": "カテゴリーまたはダウンロード状況でプラグインを絞り込む",
-      "filter-tags-label": "タグ",
       "hot-reload-description": "ファイルの変更時にプラグインを自動的にリロードします。プラグイン開発に便利です。",
       "hot-reload-label": "ホットリロード（開発モード）",
       "hot-reloaded": "プラグインをリロードしました: {name}",
@@ -1247,7 +1246,6 @@
       "installed-no-plugins-description": "「利用可能」セクションからプラグインをインストールしてください。",
       "installed-no-plugins-label": "インストールされているプラグインはありません",
       "installing": "{plugin} をインストール中...",
-      "open-plugin-page": "プラグインページを開く",
       "open-plugins-tab": "プラグイン設定を開く",
       "plugin-settings-title": "{plugin} の設定",
       "refresh-refreshing": "プラグインリストを更新中...",
