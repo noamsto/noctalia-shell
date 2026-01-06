@@ -55,6 +55,7 @@ Loader {
   sourceComponent: Component {
     Item {
       id: lockContainer
+      property alias ctx: lockContext
 
       LockContext {
         id: lockContext
@@ -64,7 +65,10 @@ Loader {
           lockContext.currentText = "";
         }
         onFailed: {
-          lockContext.currentText = "";
+          // Only clear text on password failures, not fingerprint failures
+          if (lockContext.usePasswordOnly || !lockContext.fingerprintMode) {
+            lockContext.currentText = "";
+          }
         }
       }
 
@@ -87,8 +91,7 @@ Loader {
             property bool isReady: initializationComplete && BatteryService.batteryReady
             property real percent: BatteryService.batteryPercentage
             property bool charging: BatteryService.batteryCharging
-            property bool pluggedIn: BatteryService.batteryPluggedIn
-            property bool batteryVisible: isReady && percent >= 0 && BatteryService.hasAnyBattery()
+            property bool batteryVisible: isReady && percent > 0 && BatteryService.hasAnyBattery()
           }
 
           Item {
@@ -104,22 +107,63 @@ Loader {
 
           Item {
             anchors.fill: parent
+            focus: true
+
+            // Key handler - forward to fingerprint layer first
+            Keys.onPressed: function (event) {
+              Logger.i("LockScreen", "Keys.onPressed, key:", event.key, "fpLayerVisible:", fingerprintAuthLayer.visible, "shieldActive:", fingerprintAuthLayer.shieldActive);
+              var wasShieldActive = fingerprintAuthLayer.shieldActive;
+              if (fingerprintAuthLayer.handleKeyPress(event)) {
+                // Shield was dismissed by key press, start fingerprint auth
+                if (wasShieldActive && (Settings.data.general.fingerprintEnabled !== false) && FingerprintService.available) {
+                  lockContext.startFingerprintAuth();
+                }
+                event.accepted = true;
+                return;
+              }
+              if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                lockContext.tryUnlock(true);  // true = from Enter press
+                event.accepted = true;
+              }
+            }
 
             // Mouse area to trigger focus on cursor movement (workaround for Hyprland focus issues)
             MouseArea {
               anchors.fill: parent
               hoverEnabled: true
-              acceptedButtons: Qt.NoButton
+              acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
               onPositionChanged: {
                 if (passwordInput) {
                   passwordInput.forceActiveFocus();
                 }
               }
+              onClicked: {
+                var wasShieldActive = fingerprintAuthLayer.shieldActive;
+                if (fingerprintAuthLayer.handleClick()) {
+                  // Shield was dismissed by click, start fingerprint auth
+                  if (wasShieldActive && (Settings.data.general.fingerprintEnabled !== false) && FingerprintService.available) {
+                    lockContext.startFingerprintAuth();
+                  }
+                } else if (passwordInput) {
+                  passwordInput.forceActiveFocus();
+                }
+              }
+            }
+
+            // Fingerprint authentication layer (shield + indicator)
+            // This component is isolated to minimize upstream merge conflicts
+            FingerprintAuthLayer {
+              id: fingerprintAuthLayer
+              lockContext: lockContainer.ctx
+              // Show if fingerprint enabled (default true) AND service detected
+              visible: (Settings.data.general.fingerprintEnabled !== false) && FingerprintService.available
             }
 
             // Header with avatar, welcome, time, date
             LockScreenHeader {
               id: headerComponent
+              // Show when shield is dismissed OR when fingerprint layer is hidden (fingerprint unavailable)
+              visible: !fingerprintAuthLayer.shieldActive || !fingerprintAuthLayer.visible
             }
 
             // Info notification
@@ -131,7 +175,9 @@ Loader {
               anchors.bottomMargin: (Settings.data.general.compactLockScreen ? 280 : 360) * Style.uiScaleRatio
               radius: Style.radiusL
               color: Color.mTertiary
-              visible: lockContext.showInfo && lockContext.infoMessage && !panelComponent.timerActive
+              border.color: Color.mTertiary
+              border.width: Style.borderS
+              visible: (!fingerprintAuthLayer.shieldActive || !fingerprintAuthLayer.visible) && lockContext.showInfo && lockContext.infoMessage
               opacity: visible ? 1.0 : 0.0
 
               RowLayout {
@@ -170,7 +216,9 @@ Loader {
               anchors.bottomMargin: (Settings.data.general.compactLockScreen ? 280 : 360) * Style.uiScaleRatio
               radius: Style.radiusL
               color: Color.mError
-              visible: lockContext.showFailure && lockContext.errorMessage && !panelComponent.timerActive
+              border.color: Color.mError
+              border.width: Style.borderS
+              visible: (!fingerprintAuthLayer.shieldActive || !fingerprintAuthLayer.visible) && lockContext.showFailure && lockContext.errorMessage
               opacity: visible ? 1.0 : 0.0
 
               RowLayout {
@@ -258,29 +306,32 @@ Loader {
               }
             }
 
-            // Hidden input that receives actual text
+            // Hidden text input for password capture
             TextInput {
               id: passwordInput
-              width: 0
-              height: 0
               visible: false
-              enabled: !lockContext.unlockInProgress
-              font.pointSize: Style.fontSizeM
-              color: Color.mPrimary
               echoMode: TextInput.Password
               passwordCharacter: "•"
               passwordMaskDelay: 0
               text: lockContext.currentText
-              onTextChanged: lockContext.currentText = text
+              onTextChanged: {
+                lockContext.currentText = text;
+                // When text is entered while shield is active, dismiss the shield and start fingerprint auth
+                if (fingerprintAuthLayer.shieldActive && text.length > 0) {
+                  fingerprintAuthLayer.dismissShield();
+                  // Start fingerprint auth from here since we have direct access to lockContext
+                  if ((Settings.data.general.fingerprintEnabled !== false) && FingerprintService.available) {
+                    lockContext.startFingerprintAuth();
+                  }
+                }
+              }
+              // Allow typing at all times - user can type password while fingerprint is scanning
+              // When they press Enter, we'll abort fingerprint and switch to password-only mode
+              enabled: true
 
               Keys.onPressed: function (event) {
                 if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                   lockContext.tryUnlock();
-                  event.accepted = true;
-                }
-                if (event.key === Qt.Key_Escape && panelComponent.timerActive) {
-                  panelComponent.cancelTimer();
-                  event.accepted = true;
                 }
               }
 
@@ -294,6 +345,18 @@ Loader {
               batteryIndicator: batteryIndicator
               keyboardLayout: keyboardLayout
               passwordInput: passwordInput
+              visible: !fingerprintAuthLayer.shieldActive || !fingerprintAuthLayer.visible
+            }
+          }
+
+          // Reset state when lock screen activates
+          Connections {
+            target: lockSession
+            function onLockedChanged() {
+              if (lockSession.locked) {
+                lockContext.resetForNewSession();
+                fingerprintAuthLayer.reset();
+              }
             }
           }
         }
