@@ -584,6 +584,7 @@
   "lock-screen": {
     "authenticating": "Autentificando...",
     "password": "Ingresa tu contraseña...",
+    "press-to-unlock": "Presiona cualquier tecla para desbloquear",
     "restart": "Reiniciar",
     "shut-down": "Apagar"
   },
@@ -1314,7 +1315,6 @@
       "installed-no-plugins-description": "Instale los plugins de la sección \"Disponible\".",
       "installed-no-plugins-label": "No hay plugins instalados",
       "installing": "Instalando {plugin}...",
-      "open-plugin-page": "Abrir página del plugin",
       "open-plugins-tab": "Abrir la configuración de los plugins",
       "plugin-settings-title": "Ajustes de {plugin}",
       "refresh-refreshing": "Actualizando la lista de plugins...",

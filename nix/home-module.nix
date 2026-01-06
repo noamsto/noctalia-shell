@@ -138,7 +138,7 @@ in
           sources = [
             {
               enabled = true;
-              name = "Noctalia Plugins";
+              name = "Official Noctalia Plugins";
               url = "https://github.com/noctalia-dev/noctalia-plugins";
             }
           ];
@@ -179,69 +179,118 @@ in
         or filepath, to be written to ~/.config/noctalia/plugins/plugin-name/settings.json.
       '';
     };
-  };
 
-  config = lib.mkIf cfg.enable {
-    systemd.user.services.noctalia-shell = lib.mkIf cfg.systemd.enable {
-      Unit = {
-        Description = "Noctalia Shell - Wayland desktop shell";
-        Documentation = "https://docs.noctalia.dev";
-        PartOf = [ config.wayland.systemd.target ];
-        After = [ config.wayland.systemd.target ];
-        X-Restart-Triggers =
-          lib.optional (cfg.settings != { }) config.xdg.configFile."noctalia/settings.json".source
-          ++ lib.optional (cfg.colors != { }) config.xdg.configFile."noctalia/colors.json".source
-          ++ lib.optional (cfg.plugins != { }) config.xdg.configFile."noctalia/plugins.json".source
-          ++ lib.optional (
-            cfg.user-templates != { }
-          ) config.xdg.configFile."noctalia/user-templates.toml".source
-          ++ lib.mapAttrsToList (
-            name: value: config.xdg.configFile."noctalia/plugins/${name}/settings.json".source
-          ) cfg.pluginSettings;
-      };
-
-      Service = {
-        ExecStart = lib.getExe cfg.package;
-        Restart = "on-failure";
-      };
-
-      Install.WantedBy = [ config.wayland.systemd.target ];
+    app2unit.package = lib.mkOption {
+      type = lib.types.package;
+      default = pkgs.app2unit;
+      description = ''
+        The app2unit package to use when appLauncher.useApp2Unit is enabled.
+      '';
     };
 
-    home.packages = lib.optional (cfg.package != null) cfg.package;
+    pam = {
+      fingerprint = {
+        enable = lib.mkEnableOption "fingerprint authentication PAM configs for lock screen";
 
-    xdg.configFile = {
-      "noctalia/settings.json" = lib.mkIf (cfg.settings != { }) {
-        source = generateJson "settings" cfg.settings;
-      };
-      "noctalia/colors.json" = lib.mkIf (cfg.colors != { }) {
-        source = generateJson "colors" cfg.colors;
-      };
-      "noctalia/plugins.json" = lib.mkIf (cfg.plugins != { }) {
-        source = generateJson "plugins" cfg.plugins;
-      };
-      "noctalia/user-templates.toml" = lib.mkIf (cfg.user-templates != { }) {
-        source =
-          if lib.isString cfg.user-templates then
-            pkgs.writeText "noctalia-user-templates.toml" cfg.user-templates
-          else if builtins.isPath cfg.user-templates || lib.isStorePath cfg.user-templates then
-            cfg.user-templates
-          else
-            tomlFormat.generate "noctalia-user-templates.toml" cfg.user-templates;
-      };
-    }
-    // lib.mapAttrs' (
-      name: value:
-      lib.nameValuePair "noctalia/plugins/${name}/settings.json" {
-        source = generateJson "${name}-settings" value;
-      }
-    ) cfg.pluginSettings;
+        fprintdPackage = lib.mkOption {
+          type = lib.types.package;
+          default = pkgs.fprintd;
+          description = "The fprintd package to use for PAM module paths.";
+        };
 
-    assertions = [
-      {
-        assertion = !cfg.systemd.enable || cfg.package != null;
-        message = "noctalia-shell: The package option must not be null when systemd service is enabled.";
-      }
-    ];
+        pamPackage = lib.mkOption {
+          type = lib.types.package;
+          default = pkgs.pam;
+          description = "The PAM package to use for PAM module paths.";
+        };
+      };
+    };
   };
+
+  config =
+    let
+      useApp2Unit = cfg.settings.appLauncher.useApp2Unit or false;
+
+      # PAM module paths for fingerprint authentication
+      pamFprintd = "${cfg.pam.fingerprint.fprintdPackage}/lib/security/pam_fprintd.so";
+      pamUnix = "${cfg.pam.fingerprint.pamPackage}/lib/security/pam_unix.so";
+      pamDeny = "${cfg.pam.fingerprint.pamPackage}/lib/security/pam_deny.so";
+    in
+    lib.mkIf cfg.enable {
+      systemd.user.services.noctalia-shell = lib.mkIf cfg.systemd.enable {
+        Unit = {
+          Description = "Noctalia Shell - Wayland desktop shell";
+          Documentation = "https://docs.noctalia.dev/docs";
+          PartOf = [ config.wayland.systemd.target ];
+          After = [ config.wayland.systemd.target ];
+          X-Restart-Triggers =
+            lib.optional (cfg.settings != { }) config.xdg.configFile."noctalia/settings.json".source
+            ++ lib.optional (cfg.colors != { }) config.xdg.configFile."noctalia/colors.json".source
+            ++ lib.optional (cfg.plugins != { }) config.xdg.configFile."noctalia/plugins.json".source
+            ++ lib.optional (
+              cfg.user-templates != { }
+            ) config.xdg.configFile."noctalia/user-templates.toml".source
+            ++ lib.mapAttrsToList (
+              name: value: config.xdg.configFile."noctalia/plugins/${name}/settings.json".source
+            ) cfg.pluginSettings;
+        };
+
+        Service = {
+          ExecStart = lib.getExe cfg.package;
+          Restart = "on-failure";
+        };
+
+        Install.WantedBy = [ config.wayland.systemd.target ];
+      };
+
+      home.packages =
+        lib.optional useApp2Unit cfg.app2unit.package ++ lib.optional (cfg.package != null) cfg.package;
+
+      xdg.configFile = {
+        "noctalia/settings.json" = lib.mkIf (cfg.settings != { }) {
+          source = generateJson "settings" cfg.settings;
+        };
+        "noctalia/colors.json" = lib.mkIf (cfg.colors != { }) {
+          source = generateJson "colors" cfg.colors;
+        };
+        "noctalia/plugins.json" = lib.mkIf (cfg.plugins != { }) {
+          source = generateJson "plugins" cfg.plugins;
+        };
+        "noctalia/user-templates.toml" = lib.mkIf (cfg.user-templates != { }) {
+          source =
+            if lib.isString cfg.user-templates then
+              pkgs.writeText "noctalia-user-templates.toml" cfg.user-templates
+            else if builtins.isPath cfg.user-templates || lib.isStorePath cfg.user-templates then
+              cfg.user-templates
+            else
+              tomlFormat.generate "noctalia-user-templates.toml" cfg.user-templates;
+        };
+
+        # PAM configs for fingerprint authentication (NixOS requires full store paths)
+        "noctalia/pam/fingerprint-only.conf" = lib.mkIf cfg.pam.fingerprint.enable {
+          text = ''
+            auth sufficient ${pamFprintd} timeout=-1 max-tries=-1
+            auth required ${pamDeny}
+          '';
+        };
+        "noctalia/pam/password-only.conf" = lib.mkIf cfg.pam.fingerprint.enable {
+          text = ''
+            auth required ${pamUnix}
+          '';
+        };
+      }
+      // lib.mapAttrs' (
+        name: value:
+        lib.nameValuePair "noctalia/plugins/${name}/settings.json" {
+          source = generateJson "${name}-settings" value;
+        }
+      ) cfg.pluginSettings;
+
+      assertions = [
+        {
+          assertion = !cfg.systemd.enable || cfg.package != null;
+          message = "noctalia-shell: The package option must not be null when systemd service is enabled.";
+        }
+      ];
+    };
 }

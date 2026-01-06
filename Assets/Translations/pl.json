@@ -584,6 +584,7 @@
   "lock-screen": {
     "authenticating": "Uwierzytelnianie...",
     "password": "Wprowadź hasło...",
+    "press-to-unlock": "Naciśnij dowolny klawisz, aby odblokować",
     "restart": "Restart",
     "shut-down": "Wyłącz"
   },
@@ -1314,7 +1315,6 @@
       "installed-no-plugins-description": "Zainstaluj wtyczki z sekcji \"Dostępne\".",
       "installed-no-plugins-label": "Brak zainstalowanych wtyczek",
       "installing": "Instalowanie {plugin}...",
-      "open-plugin-page": "Otwórz stronę wtyczki",
       "open-plugins-tab": "Otwórz ustawienia wtyczek",
       "plugin-settings-title": "Ustawienia {plugin}",
       "refresh-refreshing": "Odświeżanie listy wtyczek...",

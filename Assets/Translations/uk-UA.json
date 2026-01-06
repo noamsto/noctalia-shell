@@ -584,6 +584,7 @@
   "lock-screen": {
     "authenticating": "Автентифікація...",
     "password": "Введіть ваш пароль...",
+    "press-to-unlock": "Натисніть будь-яку клавішу для розблокування",
     "restart": "Перезапустити",
     "shut-down": "Вимкнути"
   },
@@ -1314,7 +1315,6 @@
       "installed-no-plugins-description": "Встановіть плагіни з розділу \"Доступний\".",
       "installed-no-plugins-label": "Немає встановлених плагінів",
       "installing": "Встановлення {plugin}...",
-      "open-plugin-page": "Відкрити сторінку плагіна",
       "open-plugins-tab": "Відкрити налаштування плагінів",
       "plugin-settings-title": "Налаштування {plugin}",
       "refresh-refreshing": "Оновлення списку плагінів...",

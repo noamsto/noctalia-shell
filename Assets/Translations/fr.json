@@ -584,6 +584,7 @@
   "lock-screen": {
     "authenticating": "Authentification...",
     "password": "Entrez votre mot de passe...",
+    "press-to-unlock": "Appuyez sur une touche pour déverrouiller",
     "restart": "Redémarrer",
     "shut-down": "Éteindre"
   },
@@ -1314,7 +1315,6 @@
       "installed-no-plugins-description": "Installez les extensions depuis la section \"Disponible\".",
       "installed-no-plugins-label": "Aucun plugin installé",
       "installing": "Installation de {plugin}...",
-      "open-plugin-page": "Ouvrir la page du plugin",
       "open-plugins-tab": "Ouvrir les paramètres des plugins",
       "plugin-settings-title": "Paramètres de {plugin}",
       "refresh-refreshing": "Actualisation de la liste des plugins...",

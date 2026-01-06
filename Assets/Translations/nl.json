@@ -584,6 +584,7 @@
   "lock-screen": {
     "authenticating": "Bezig met verifiëren...",
     "password": "Voer je wachtwoord in...",
+    "press-to-unlock": "Druk op een toets om te ontgrendelen",
     "restart": "Opnieuw opstarten",
     "shut-down": "Uitschakelen"
   },
@@ -1314,7 +1315,6 @@
       "installed-no-plugins-description": "Installeer plugins uit de sectie \"Beschikbaar\".",
       "installed-no-plugins-label": "Geen plugins geïnstalleerd",
       "installing": "{plugin} installeren...",
-      "open-plugin-page": "Open plug-in pagina",
       "open-plugins-tab": "Open plugininstellingen",
       "plugin-settings-title": "{plugin} Instellingen",
       "refresh-refreshing": "Pluginlijst vernieuwen...",

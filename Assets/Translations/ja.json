@@ -584,6 +584,7 @@
   "lock-screen": {
     "authenticating": "認証中...",
     "password": "パスワードを入力...",
+    "press-to-unlock": "キーを押してロック解除",
     "restart": "再起動",
     "shut-down": "シャットダウン"
   },
@@ -1314,7 +1315,6 @@
       "installed-no-plugins-description": "「利用可能」セクションからプラグインをインストールしてください。",
       "installed-no-plugins-label": "インストールされているプラグインはありません",
       "installing": "{plugin} をインストール中...",
-      "open-plugin-page": "プラグインページを開く",
       "open-plugins-tab": "プラグイン設定を開く",
       "plugin-settings-title": "{plugin} の設定",
       "refresh-refreshing": "プラグインリストを更新中...",

@@ -584,6 +584,7 @@
   "lock-screen": {
     "authenticating": "Autenticando...",
     "password": "Digite sua senha...",
+    "press-to-unlock": "Pressione qualquer tecla para desbloquear",
     "restart": "Reiniciar",
     "shut-down": "Desligar"
   },
@@ -1303,6 +1304,7 @@
       "filter-not-downloaded": "Não baixado",
       "filter-tags-description": "Filtrar plugins por categoria ou estado de download.",
       "filter-tags-label": "Etiquetas",
+      "filter-not-downloaded": "Não Baixado",
       "hot-reload-description": "Recarrega automaticamente os plugins quando seus arquivos são alterados. Útil para o desenvolvimento de plugins.",
       "hot-reload-label": "Recarga a quente (modo de desenvolvimento)",
       "hot-reloaded": "Plugin recarregado: {name}",
@@ -1314,7 +1316,6 @@
       "installed-no-plugins-description": "Instale os plugins da seção \"Disponível\".",
       "installed-no-plugins-label": "Nenhum plugin instalado",
       "installing": "Instalando {plugin}...",
-      "open-plugin-page": "Abrir página do plugin",
       "open-plugins-tab": "Abrir configurações de plugins",
       "plugin-settings-title": "Configurações do {plugin}",
       "refresh-refreshing": "Atualizando a lista de plugins...",
