@@ -91,8 +91,7 @@ Loader {
             property bool isReady: initializationComplete && BatteryService.batteryReady
             property real percent: BatteryService.batteryPercentage
             property bool charging: BatteryService.batteryCharging
-            property bool pluggedIn: BatteryService.batteryPluggedIn
-            property bool batteryVisible: isReady && percent >= 0 && BatteryService.hasAnyBattery()
+            property bool batteryVisible: isReady && percent > 0 && BatteryService.hasAnyBattery()
           }
 
           Item {
@@ -178,7 +177,7 @@ Loader {
               color: Color.mTertiary
               border.color: Color.mTertiary
               border.width: Style.borderS
-              visible: (!fingerprintAuthLayer.shieldActive || !fingerprintAuthLayer.visible) && lockContext.showInfo && lockContext.infoMessage && !panelComponent.timerActive
+              visible: (!fingerprintAuthLayer.shieldActive || !fingerprintAuthLayer.visible) && lockContext.showInfo && lockContext.infoMessage
               opacity: visible ? 1.0 : 0.0
 
               RowLayout {
@@ -219,7 +218,7 @@ Loader {
               color: Color.mError
               border.color: Color.mError
               border.width: Style.borderS
-              visible: (!fingerprintAuthLayer.shieldActive || !fingerprintAuthLayer.visible) && lockContext.showFailure && lockContext.errorMessage && !panelComponent.timerActive
+              visible: (!fingerprintAuthLayer.shieldActive || !fingerprintAuthLayer.visible) && lockContext.showFailure && lockContext.errorMessage
               opacity: visible ? 1.0 : 0.0
 
               RowLayout {
@@ -332,12 +331,7 @@ Loader {
 
               Keys.onPressed: function (event) {
                 if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                  lockContext.tryUnlock(true);  // true = from Enter press
-                  event.accepted = true;
-                }
-                if (event.key === Qt.Key_Escape && panelComponent.timerActive) {
-                  panelComponent.cancelTimer();
-                  event.accepted = true;
+                  lockContext.tryUnlock();
                 }
               }
 

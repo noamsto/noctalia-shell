@@ -15,6 +15,12 @@ Singleton {
   property bool hasEnrolledFingers: false // user has fingerprints enrolled
   readonly property bool ready: hasDevice && hasEnrolledFingers
 
+  // System PAM config mode - when NOCTALIA_PAM_CONFIG is set, system manages fingerprint
+  // In this mode, we trust the system PAM config handles fingerprint even if fprintd-list fails
+  readonly property bool systemPamMode: Quickshell.env("NOCTALIA_PAM_CONFIG") !== ""
+  // UI should show fingerprint indicator if either detected OR system PAM mode
+  readonly property bool showFingerprintUI: available || systemPamMode
+
   // Continuous detection mode - keeps polling until ready or stopped
   // Rationale: After suspend/resume, fprintd may need time to reinitialize
   // Rather than fixed delays, we continuously poll until fprintd responds

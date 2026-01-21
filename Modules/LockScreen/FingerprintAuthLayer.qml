@@ -53,34 +53,32 @@ Item {
     visible: internal.shieldActive
     z: 100
 
-    // Background pill for visibility on any wallpaper
+    // Minimal background pill for visibility on any wallpaper
     Rectangle {
       anchors.centerIn: parent
-      width: shieldContent.width + Style.marginXL * 2
-      height: shieldContent.height + Style.marginXL * 2
-      radius: Style.radiusXL
-      color: Qt.alpha(Color.mSurface, 0.85)
-      border.color: Qt.alpha(Color.mOutline, 0.3)
-      border.width: Style.borderS
+      width: shieldContent.width + Style.marginL * 2
+      height: shieldContent.height + Style.marginM * 2
+      radius: Style.radiusL
+      color: Qt.alpha(Color.mSurface, 0.7)
     }
 
-    ColumnLayout {
+    RowLayout {
       id: shieldContent
       anchors.centerIn: parent
-      spacing: Style.marginL
+      spacing: Style.marginS
 
       NIcon {
-        Layout.alignment: Qt.AlignHCenter
+        Layout.alignment: Qt.AlignVCenter
         icon: "lock"
-        pointSize: Style.fontSizeXXXL * 2
-        color: Color.mOnSurface
+        pointSize: Style.fontSizeL
+        color: Color.mOnSurfaceVariant
       }
 
       NText {
-        Layout.alignment: Qt.AlignHCenter
+        Layout.alignment: Qt.AlignVCenter
         text: I18n.tr("lock-screen.press-to-unlock")
-        color: Color.mOnSurface
-        pointSize: Style.fontSizeXL
+        color: Color.mOnSurfaceVariant
+        pointSize: Style.fontSizeM
       }
     }
 
@@ -105,7 +103,7 @@ Item {
     color: showingError ? Qt.alpha("#F44336", 0.25) : Color.mSurfaceVariant
     border.color: showingError ? "#F44336" : Qt.alpha(Color.mPrimary, 0.3)
     border.width: showingError ? 2 : 1
-    visible: !internal.shieldActive && fingerprintShowTimer.shouldShow
+    visible: !internal.shieldActive && (fingerprintShowTimer.shouldShow || FingerprintService.systemPamMode)
     opacity: visible ? 1.0 : 0.0
 
     property bool showingError: false
@@ -157,7 +155,7 @@ Item {
     Timer {
       id: fingerprintShowTimer
       interval: 500
-      running: !internal.shieldActive && Settings.data.general.fingerprintEnabled && FingerprintService.available
+      running: !internal.shieldActive && Settings.data.general.fingerprintEnabled && (FingerprintService.available || FingerprintService.systemPamMode)
       property bool shouldShow: false
       onTriggered: shouldShow = true
     }
