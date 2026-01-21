@@ -15,7 +15,8 @@ Item {
   required property var lockContext
 
   // Exposed state - parent components bind to this for visibility
-  readonly property bool shieldActive: internal.shieldActive
+  // Shield is only "active" (blocking content) when both visible AND internal state is active
+  readonly property bool shieldActive: visible && internal.shieldActive
 
   // Fingerprint indicator visibility (for external queries)
   readonly property bool showingFingerprintIndicator: fingerprintIndicator.visible
@@ -52,7 +53,19 @@ Item {
     visible: internal.shieldActive
     z: 100
 
+    // Background pill for visibility on any wallpaper
+    Rectangle {
+      anchors.centerIn: parent
+      width: shieldContent.width + Style.marginXL * 2
+      height: shieldContent.height + Style.marginXL * 2
+      radius: Style.radiusXL
+      color: Qt.alpha(Color.mSurface, 0.85)
+      border.color: Qt.alpha(Color.mOutline, 0.3)
+      border.width: Style.borderS
+    }
+
     ColumnLayout {
+      id: shieldContent
       anchors.centerIn: parent
       spacing: Style.marginL
 
@@ -61,7 +74,6 @@ Item {
         icon: "lock"
         pointSize: Style.fontSizeXXXL * 2
         color: Color.mOnSurface
-        opacity: 0.8
       }
 
       NText {
@@ -69,7 +81,6 @@ Item {
         text: I18n.tr("lock-screen.press-to-unlock")
         color: Color.mOnSurface
         pointSize: Style.fontSizeXL
-        opacity: 0.9
       }
     }
 
@@ -176,10 +187,16 @@ Item {
   }
 
   // Key handler - parent should forward key events or use Keys.forwardTo
+  // Returns true if event should be consumed (non-printable keys), false if it should pass through (printable chars)
   function handleKeyPress(event) {
     if (internal.shieldActive) {
       dismissShield();
-      return true; // consumed
+      // Printable characters should pass through to password input
+      // Check if it's a printable character (has text and not a modifier/special key)
+      if (event.text && event.text.length > 0) {
+        return false; // don't consume - let it reach password input
+      }
+      return true; // consume non-printable keys (Enter, arrows, etc.)
     }
     return false; // not consumed
   }
