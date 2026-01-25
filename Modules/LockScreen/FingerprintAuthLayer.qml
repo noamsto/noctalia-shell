@@ -15,21 +15,16 @@ Item {
   required property var lockContext
 
   // Exposed state - parent components bind to this for visibility
-  // Shield is only "active" (blocking content) when both visible AND internal state is active
-  readonly property bool shieldActive: visible && internal.shieldActive
+  readonly property bool shieldActive: internal.shieldActive
 
   // Fingerprint indicator visibility (for external queries)
   readonly property bool showingFingerprintIndicator: fingerprintIndicator.visible
 
-  // Dismiss shield and start authentication
+  // Dismiss shield (parent is responsible for starting auth)
   function dismissShield() {
     if (!internal.shieldActive)
       return;
     internal.shieldActive = false;
-    // Start fingerprint auth when shield is dismissed
-    if (Settings.data.general.fingerprintEnabled && FingerprintService.available) {
-      lockContext.startFingerprintAuth();
-    }
   }
 
   // Reset state (called when lock screen activates)
@@ -103,7 +98,7 @@ Item {
     color: showingError ? Qt.alpha("#F44336", 0.25) : Color.mSurfaceVariant
     border.color: showingError ? "#F44336" : Qt.alpha(Color.mPrimary, 0.3)
     border.width: showingError ? 2 : 1
-    visible: !internal.shieldActive && (fingerprintShowTimer.shouldShow || FingerprintService.systemPamMode)
+    visible: !internal.shieldActive && fingerprintShowTimer.shouldShow
     opacity: visible ? 1.0 : 0.0
 
     property bool showingError: false
@@ -122,31 +117,31 @@ Item {
       }
     }
 
-    // Shake animation on error
+    // Shake animation on error (uses horizontalCenterOffset since x is controlled by anchor)
     SequentialAnimation {
       id: shakeAnimation
       PropertyAnimation {
         target: fingerprintIndicator
-        property: "x"
-        to: fingerprintIndicator.x - 10
+        property: "anchors.horizontalCenterOffset"
+        to: -10
         duration: 50
       }
       PropertyAnimation {
         target: fingerprintIndicator
-        property: "x"
-        to: fingerprintIndicator.x + 10
+        property: "anchors.horizontalCenterOffset"
+        to: 10
         duration: 50
       }
       PropertyAnimation {
         target: fingerprintIndicator
-        property: "x"
-        to: fingerprintIndicator.x - 10
+        property: "anchors.horizontalCenterOffset"
+        to: -5
         duration: 50
       }
       PropertyAnimation {
         target: fingerprintIndicator
-        property: "x"
-        to: fingerprintIndicator.x
+        property: "anchors.horizontalCenterOffset"
+        to: 0
         duration: 50
       }
     }
@@ -155,7 +150,7 @@ Item {
     Timer {
       id: fingerprintShowTimer
       interval: 500
-      running: !internal.shieldActive && Settings.data.general.fingerprintEnabled && (FingerprintService.available || FingerprintService.systemPamMode)
+      running: !internal.shieldActive && (Settings.data.general.fingerprintEnabled !== false) && FingerprintService.available
       property bool shouldShow: false
       onTriggered: shouldShow = true
     }
@@ -164,10 +159,16 @@ Item {
     Connections {
       target: root.lockContext
       function onFingerprintFailed() {
+        Logger.i("FPAuthLayer", "onFingerprintFailed - indicator visible:", fingerprintIndicator.visible,
+                 "shieldActive:", internal.shieldActive, "shouldShow:", fingerprintShowTimer.shouldShow);
         fingerprintIndicator.showingError = true;
         shakeAnimation.start();
         fingerprintErrorResetTimer.start();
       }
+    }
+
+    Component.onCompleted: {
+      Logger.i("FPAuthLayer", "fingerprintIndicator ready - lockContext:", root.lockContext ? "set" : "null");
     }
 
     Timer {
@@ -185,16 +186,10 @@ Item {
   }
 
   // Key handler - parent should forward key events or use Keys.forwardTo
-  // Returns true if event should be consumed (non-printable keys), false if it should pass through (printable chars)
   function handleKeyPress(event) {
     if (internal.shieldActive) {
       dismissShield();
-      // Printable characters should pass through to password input
-      // Check if it's a printable character (has text and not a modifier/special key)
-      if (event.text && event.text.length > 0) {
-        return false; // don't consume - let it reach password input
-      }
-      return true; // consume non-printable keys (Enter, arrows, etc.)
+      return true; // consumed
     }
     return false; // not consumed
   }

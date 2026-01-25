@@ -15,38 +15,6 @@ Singleton {
   property bool hasEnrolledFingers: false // user has fingerprints enrolled
   readonly property bool ready: hasDevice && hasEnrolledFingers
 
-  // System PAM config mode - when NOCTALIA_PAM_CONFIG is set, system manages fingerprint
-  // In this mode, we trust the system PAM config handles fingerprint even if fprintd-list fails
-  readonly property bool systemPamMode: Quickshell.env("NOCTALIA_PAM_CONFIG") !== ""
-  // UI should show fingerprint indicator if either detected OR system PAM mode
-  readonly property bool showFingerprintUI: available || systemPamMode
-
-  // Continuous detection mode - keeps polling until ready or stopped
-  // Rationale: After suspend/resume, fprintd may need time to reinitialize
-  // Rather than fixed delays, we continuously poll until fprintd responds
-  // Lock screen reacts automatically when FingerprintService.ready becomes true
-  property bool continuousMode: false
-
-  // Start continuous detection (for lock screen activation / resume)
-  function startContinuousDetection() {
-    Logger.i("Fingerprint", "Starting continuous detection mode");
-    continuousMode = true;
-    detectProc.retryCount = 0;
-    if (!detectProc.running) {
-      Logger.d("Fingerprint", "Starting detection process");
-      detectProc.running = true;
-    } else {
-      Logger.d("Fingerprint", "Detection process already running");
-    }
-  }
-
-  // Stop continuous detection (when unlocked)
-  function stopContinuousDetection() {
-    Logger.i("Fingerprint", "Stopping continuous detection mode");
-    continuousMode = false;
-    retryTimer.stop();
-  }
-
   // Re-check detection (e.g., after user enrolls fingerprints)
   function refresh() {
     detectProc.retryCount = 0;
@@ -126,14 +94,9 @@ Singleton {
 
     onExited: (exitCode, exitStatus) => {
       if (exitCode !== 0) {
-        // In continuous mode, keep retrying until stopped or ready
-        if (root.continuousMode || retryCount < maxRetries) {
+        if (retryCount < maxRetries) {
           retryCount++;
-          if (root.continuousMode) {
-            Logger.d("Fingerprint", "fprintd-list failed, continuous retry", retryCount);
-          } else {
-            Logger.i("Fingerprint", "fprintd-list failed, retry", retryCount, "of", maxRetries);
-          }
+          Logger.i("Fingerprint", "fprintd-list failed, retry", retryCount, "of", maxRetries);
           retryTimer.start();
         } else {
           Logger.i("Fingerprint", "fprintd-list failed after", maxRetries, "retries - fingerprint auth unavailable");
@@ -141,9 +104,6 @@ Singleton {
           root.hasDevice = false;
           root.hasEnrolledFingers = false;
         }
-      } else if (root.ready) {
-        // Detection succeeded and ready - stop continuous mode
-        root.continuousMode = false;
       }
     }
   }
