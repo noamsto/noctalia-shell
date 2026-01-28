@@ -1223,7 +1223,9 @@ Singleton {
     id: disconnectProcess
     property string ssid: ""
     running: false
-    command: ["nmcli", "connection", "down", "id", ssid]
+    // Use device disconnect instead of connection down - the connection name
+    // may differ from the SSID, but device disconnect works regardless
+    command: root.activeWifiIf ? ["nmcli", "device", "disconnect", root.activeWifiIf] : ["nmcli", "connection", "down", "id", ssid]
 
     stdout: StdioCollector {
       onStreamFinished: {
