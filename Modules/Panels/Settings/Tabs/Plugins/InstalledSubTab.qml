@@ -105,12 +105,14 @@ ColumnLayout {
               pluginData.sourceName = PluginRegistry.getSourceNameByHash(parsed.sourceHash);
             }
 
-            // Look up "official" (team-maintained) status from available plugins
+            // Look up "official" (team-maintained) status and lastUpdated from available plugins
             pluginData.official = false;
+            pluginData.lastUpdated = null;
             var availablePlugins = PluginService.availablePlugins || [];
             for (var j = 0; j < availablePlugins.length; j++) {
               if (availablePlugins[j].id === manifest.id) {
                 pluginData.official = availablePlugins[j].official === true;
+                pluginData.lastUpdated = availablePlugins[j].lastUpdated || null;
                 break;
               }
             }
@@ -333,6 +335,20 @@ ColumnLayout {
               color: Color.mTertiary
             }
 
+            NText {
+              visible: !!modelData.lastUpdated
+              text: "•"
+              font.pointSize: Style.fontSizeXS
+              color: Color.mOnSurfaceVariant
+            }
+
+            NText {
+              visible: !!modelData.lastUpdated
+              text: modelData.lastUpdated ? Time.formatRelativeTime(new Date(modelData.lastUpdated)) : ""
+              font.pointSize: Style.fontSizeXS
+              color: Color.mOnSurfaceVariant
+            }
+
             Item {
               Layout.fillWidth: true
             }
@@ -440,6 +456,8 @@ ColumnLayout {
   function uninstallPlugin(pluginId) {
     var manifest = PluginRegistry.getPluginManifest(pluginId);
     var pluginName = manifest?.name || pluginId;
+
+    BarService.widgetsRevision++;
 
     ToastService.showNotice(I18n.tr("panels.plugins.title"), I18n.tr("panels.plugins.uninstalling", {
                                                                        "plugin": pluginName

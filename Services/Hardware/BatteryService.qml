@@ -11,10 +11,24 @@ import qs.Services.UI
 Singleton {
   id: root
 
-  // Cached device lookups (computed once, used by all properties)
+  // MARK: BatteryService
+  // Primary battery device (prioritizes laptop over Bluetooth)
+  readonly property var primaryDevice: _laptopBattery || _bluetoothBattery || null
+  // Whether the primary device is a laptop battery
+  readonly property bool isLaptopBattery: _laptopBattery !== null && primaryDevice === _laptopBattery
+  readonly property real batteryPercentage: getPercentage(primaryDevice)
+  readonly property bool batteryCharging: isCharging(primaryDevice)
+  readonly property bool batteryPluggedIn: isPluggedIn(primaryDevice)
+  readonly property bool batteryReady: isDeviceReady(primaryDevice)
+  readonly property bool batteryPresent: isDevicePresent(primaryDevice)
+
+  property bool healthAvailable: false
+  property int healthPercent: -1
+
   readonly property var _laptopBattery: {
-    if (!UPower.devices)
-    return UPower.displayDevice;
+    if (!UPower.devices) {
+      return UPower.displayDevice;
+    }
 
     var devices = UPower.devices.values || [];
 
@@ -39,41 +53,51 @@ Singleton {
       }
     }
 
-    return UPower.displayDevice;
-  }
-
-  readonly property var _bluetoothBattery: {
-    var devices = BluetoothService.devices ? (BluetoothService.devices.values || []) : [];
-    for (var i = 0; i < devices.length; i++) {
-      var device = devices[i];
-      if (device && device.connected && device.batteryAvailable) {
-        return device;
-      }
+    if (UPower.displayDevice.isPresent) {
+      return UPower.displayDevice;
     }
     return null;
   }
 
-  // Primary battery device (prioritizes laptop over Bluetooth)
-  readonly property var primaryDevice: _laptopBattery || _bluetoothBattery || null
+  readonly property var externalBatteries: {
+    var list = [];
+    var devices = BluetoothService.devices ? (BluetoothService.devices.values || []) : [];
+    for (var i = 0; i < devices.length; i++) {
+      var device = devices[i];
+      if (device && device.connected && device.batteryAvailable) {
+        list.push(device);
+      }
+    }
+    return list;
+  }
 
-  // Whether the primary device is a laptop battery
-  readonly property bool isLaptopBattery: _laptopBattery !== null && primaryDevice === _laptopBattery
+  readonly property var _bluetoothBattery: externalBatteries.length > 0 ? externalBatteries[0] : null
 
-  readonly property real batteryPercentage: getPercentage(primaryDevice)
+  // MARK: BatterySettings
+  property var deviceModel: {
+    var model = [
+      {
+        "key": "__default__",
+        "name": I18n.tr("bar.battery.device-default")
+      }
+    ];
+    // UPower Devices
+    const devices = UPower.devices?.values || [];
+    for (let d of devices) {
+      if (!d || d.type === UPowerDeviceType.LinePower) {
+        continue;
+      }
+      model.push({
+                   key: d.nativePath || "",
+                   name: d.model || d.nativePath || I18n.tr("common.unknown")
+                 });
+    }
+    return model;
+  }
 
-  readonly property bool batteryCharging: isCharging(primaryDevice)
-
-  readonly property bool batteryPluggedIn: isPluggedIn(primaryDevice)
-
-  readonly property bool batteryReady: isDeviceReady(primaryDevice)
-
-  readonly property bool batteryPresent: isDevicePresent(primaryDevice)
-
-  property bool healthAvailable: false
-  property int healthPercent: -1
-
+  // MARK: findUPowerDevice
   function findUPowerDevice(nativePath) {
-    if (!nativePath || nativePath === "") {
+    if (!nativePath || nativePath === "__default__" || nativePath === "DisplayDevice") {
       return _laptopBattery;
     }
 
@@ -94,6 +118,7 @@ Singleton {
     return null;
   }
 
+  // MARK: findBluetoothDevice
   function findBluetoothDevice(nativePath) {
     if (!nativePath || !BluetoothService.devices) {
       return null;
@@ -116,9 +141,11 @@ Singleton {
     return null;
   }
 
+  // MARK: isDevicePresent
   function isDevicePresent(device) {
-    if (!device)
+    if (!device) {
       return false;
+    }
 
     // Handle Bluetooth devices (identified by having batteryAvailable property)
     if (device.batteryAvailable !== undefined) {
@@ -130,53 +157,68 @@ Singleton {
       if (device.type === UPowerDeviceType.Battery && device.isPresent !== undefined) {
         return device.isPresent === true;
       }
-
       // Fallback for non-battery UPower devices or if isPresent is missing
       return device.ready && device.percentage !== undefined;
     }
-
     return false;
   }
 
+  // MARK: isDeviceReady
   function isDeviceReady(device) {
-    if (!isDevicePresent(device))
+    if (!isDevicePresent(device)) {
       return false;
-
+    }
     if (device.batteryAvailable !== undefined) {
       return device.battery !== undefined;
     }
-
     return device.ready && device.percentage !== undefined;
   }
 
+  // MARK: getPercentage
   function getPercentage(device) {
-    if (!device)
-      return 0;
+    if (!device) {
+      return -1;
+    }
     if (device.batteryAvailable !== undefined) {
       return (device.battery || 0) * 100;
     }
     return (device.percentage || 0) * 100;
   }
 
+  // MARK: isCharging
   function isCharging(device) {
-    if (!device || device.batteryAvailable !== undefined)
-      return false;
-    return device.state === UPowerDeviceState.Charging;
+    if (!device || isBluetoothDevice(device)) {
+      // Tracking bluetooth devices can charge or not is a loop hole, none of my devices has it, even if it possible?!
+      return false;  // Assuming not charging until someone/quickshell brings a way to do pretty unlikely.
+    }
+    if (device.state !== undefined) {
+      return device.state === UPowerDeviceState.Charging;
+    }
+    return false;
   }
 
+  // MARK: isPluggedIn
   function isPluggedIn(device) {
-    if (!device || device.batteryAvailable !== undefined)
-      return false;
-    return device.state === UPowerDeviceState.FullyCharged || device.state === UPowerDeviceState.PendingCharge;
+    if (!device || isBluetoothDevice(device)) {
+      // Tracking bluetooth devices can charge or not is a loop hole, none of my devices has it, even if it possible?!
+      return false;  // Assuming not charging until someone/quickshell brings a way to do pretty unlikely.
+    }
+    if (device.state !== undefined) {
+      return device.state === UPowerDeviceState.FullyCharged || device.state === UPowerDeviceState.PendingCharge;
+    }
+    return false;
   }
 
+  // MARK: isBluetoothDevice
   function isBluetoothDevice(device) {
     return device && device.batteryAvailable !== undefined;
   }
 
+  // MARK: getDeviceName
   function getDeviceName(device) {
-    if (!isDeviceReady(device))
+    if (!isDeviceReady(device)) {
       return "";
+    }
 
     // Don't show name for laptop batteries
     if (!isBluetoothDevice(device) && device.isLaptopBattery) {
@@ -194,8 +236,9 @@ Singleton {
     return "";
   }
 
+  // MARK: refreshHealth
   function refreshHealth() {
-    if (!isLaptopBattery || !primaryDevice) {
+    if (!isLaptopBattery) {
       healthAvailable = false;
       healthPercent = -1;
       return;
@@ -205,7 +248,7 @@ Singleton {
 
   Process {
     id: healthProcess
-    command: ["sh", "-c", "upower -i $(upower -e | grep battery | head -n 1) 2>/dev/null | grep -iE 'capacity'"]
+    command: ["sh", "-c", `upower -i ${primaryDevice && primaryDevice.nativePath ? "/org/freedesktop/UPower/devices/battery_" + primaryDevice.nativePath : "$(upower -e | grep battery | head -n 1)"} 2>/dev/null | grep -iE 'capacity'`]
     environment: ({
                     "LC_ALL": "C"
                   })
@@ -213,9 +256,9 @@ Singleton {
     stdout: SplitParser {
       onRead: function (data) {
         var line = data.trim();
-        if (line === "")
+        if (line === "") {
           return;
-
+        }
         var capacityMatch = line.match(/^\s*capacity:\s*(\d+(?:\.\d+)?)\s*%/i);
         if (capacityMatch) {
           root.healthPercent = Math.round(parseFloat(capacityMatch[1]));
@@ -232,6 +275,7 @@ Singleton {
     }
   }
 
+  // MARK: getIcon
   function getIcon(percent, charging, pluggedIn, isReady) {
     if (!isReady) {
       return "battery-exclamation";
@@ -260,7 +304,48 @@ Singleton {
     return "battery-off"; // New fallback icon clearly represent if nothing is true here.
   }
 
+  // MARK: hasAnyBattery
   function hasAnyBattery() {
     return primaryDevice !== null;
+  }
+
+  // MARK: Battery
+  // MARK: getRateText
+  function getRateText(device) {
+    if (!device || device.changeRate === undefined) {
+      return "";
+    }
+    const rate = Math.abs(device.changeRate);
+    if (isPluggedIn(device)) {
+      return I18n.tr("battery.plugged-in");
+    } else if (device.timeToFull > 0) {
+      return I18n.tr("battery.charging-rate", {
+                       "rate": rate.toFixed(2)
+                     });
+    } else if (device.timeToEmpty > 0) {
+      return I18n.tr("battery.discharging-rate", {
+                       "rate": rate.toFixed(2)
+                     });
+    }
+    return I18n.tr("common.idle");
+  }
+
+  // MARK: getTimeRemainingText
+  function getTimeRemainingText(device) {
+    if (!isDeviceReady(device)) {
+      return I18n.tr("battery.no-battery-detected");
+    }
+    if (isPluggedIn(device)) {
+      return I18n.tr("battery.plugged-in");
+    } else if (device.timeToFull > 0) {
+      return I18n.tr("battery.time-until-full", {
+                       "time": Time.formatVagueHumanReadableDuration(device.timeToFull)
+                     });
+    } else if (device.timeToEmpty > 0) {
+      return I18n.tr("battery.time-left", {
+                       "time": Time.formatVagueHumanReadableDuration(device.timeToEmpty)
+                     });
+    }
+    return I18n.tr("common.idle");
   }
 }

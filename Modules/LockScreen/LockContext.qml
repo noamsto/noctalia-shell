@@ -97,8 +97,7 @@ Scope {
   // Start fingerprint authentication when lock screen becomes visible
   // Called from LockScreen.qml when surface becomes visible
   function startFingerprintAuth() {
-    Logger.i("LockContext", "startFingerprintAuth called - fingerprintMode:", fingerprintMode, "FingerprintService.ready:", FingerprintService.ready, "FingerprintService.available:", FingerprintService.available, "pamStarted:", pamStarted, "unlockInProgress:", unlockInProgress, "currentText:", currentText !== "" ? "[has text: '" + currentText + "']" :
-                                                                                                                                                                                                                                                                                                                            "[empty]");
+    Logger.i("LockContext", "startFingerprintAuth called - fingerprintMode:", fingerprintMode, "FingerprintService.ready:", FingerprintService.ready, "FingerprintService.available:", FingerprintService.available, "pamStarted:", pamStarted, "unlockInProgress:", unlockInProgress, "currentText:", currentText !== "" ? "[has text: '" + currentText + "']" : "[empty]");
 
     if (!fingerprintMode) {
       Logger.d("LockContext", "Fingerprint mode not available, skipping auto-start");
@@ -207,44 +206,42 @@ Scope {
     }
 
     onCompleted: result => {
-                   var resultName = result === PamResult.Success ? "Success" : result === PamResult.AuthError ? "AuthError" : result === PamResult.CredentialsUnavailable ? "CredentialsUnavailable" : result === PamResult.AccountExpired ? "AccountExpired" : result === PamResult.MaxTries ? "MaxTries" : result === PamResult.PermissionDenied ? "PermissionDenied" :
-                                                                                                                                                                                                                                                                                                                                                     "Unknown("
-                                                                                                                                                                                                                                                                                                                                                     + result + ")";
-                   Logger.i("LockContext", "PAM completed - result:", result, "(" + resultName + ")", "fingerprintMode:", root.fingerprintMode, "usePasswordOnly:", root.usePasswordOnly, "abortInProgress:", root.abortInProgress);
+      var resultName = result === PamResult.Success ? "Success" : result === PamResult.AuthError ? "AuthError" : result === PamResult.CredentialsUnavailable ? "CredentialsUnavailable" : result === PamResult.AccountExpired ? "AccountExpired" : result === PamResult.MaxTries ? "MaxTries" : result === PamResult.PermissionDenied ? "PermissionDenied" : "Unknown(" + result + ")";
+      Logger.i("LockContext", "PAM completed - result:", result, "(" + resultName + ")", "fingerprintMode:", root.fingerprintMode, "usePasswordOnly:", root.usePasswordOnly, "abortInProgress:", root.abortInProgress);
 
-                   // Handle abort completion - restart with password-only
-                   if (root.abortInProgress) {
-                     Logger.i("LockContext", "PAM aborted, restarting with password-only config");
-                     abortTimer.stop();
-                     root.abortInProgress = false;
-                     root.unlockInProgress = false;
-                     root.usePasswordOnly = true;
-                     root.pamStarted = false;
-                     root.tryUnlock();
-                     return;
-                   }
+      // Handle abort completion - restart with password-only
+      if (root.abortInProgress) {
+        Logger.i("LockContext", "PAM aborted, restarting with password-only config");
+        abortTimer.stop();
+        root.abortInProgress = false;
+        root.unlockInProgress = false;
+        root.usePasswordOnly = true;
+        root.pamStarted = false;
+        root.tryUnlock();
+        return;
+      }
 
-                   if (result === PamResult.Success) {
-                     Logger.i("LockContext", "Authentication successful");
-                     root.unlocked();
-                   } else {
-                     Logger.i("LockContext", "Authentication failed");
-                     root.currentText = "";
-                     // Only show error text for password failures, not fingerprint
-                     // (fingerprint has the red shaking icon instead)
-                     if (root.usePasswordOnly || !root.fingerprintMode) {
-                       errorMessage = I18n.tr("authentication.failed");
-                       showFailure = true;
-                     }
-                     root.failed();
-                   }
-                   root.unlockInProgress = false;
-                   root.waitingForPassword = false;
-                   root.usePasswordOnly = false;
-                   root.pamStarted = false;
-                   // Note: No auto-restart on failure - user must dismiss shield or press key to retry
-                   // This prevents infinite retry loops when fprintd returns immediately
-                 }
+      if (result === PamResult.Success) {
+        Logger.i("LockContext", "Authentication successful");
+        root.unlocked();
+      } else {
+        Logger.i("LockContext", "Authentication failed");
+        root.currentText = "";
+        // Only show error text for password failures, not fingerprint
+        // (fingerprint has the red shaking icon instead)
+        if (root.usePasswordOnly || !root.fingerprintMode) {
+          errorMessage = I18n.tr("authentication.failed");
+          showFailure = true;
+        }
+        root.failed();
+      }
+      root.unlockInProgress = false;
+      root.waitingForPassword = false;
+      root.usePasswordOnly = false;
+      root.pamStarted = false;
+      // Note: No auto-restart on failure - user must dismiss shield or press key to retry
+      // This prevents infinite retry loops when fprintd returns immediately
+    }
 
     onError: {
       Logger.i("LockContext", "PAM error:", error, "message:", message);

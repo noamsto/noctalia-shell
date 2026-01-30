@@ -14,6 +14,7 @@ Popup {
   property string widgetId: ""
   property string sectionId: ""
   property var screen: null
+  property var settingsCache: ({})
 
   signal updateWidgetSettings(string section, int index, var settings)
 
@@ -72,7 +73,7 @@ Popup {
       NIconButton {
         icon: "close"
         tooltipText: I18n.tr("common.close")
-        onClicked: root.close()
+        onClicked: saveAndClose()
       }
     }
 
@@ -111,36 +112,36 @@ Popup {
         }
       }
     }
+  }
 
-    // Action buttons
-    RowLayout {
-      id: buttonRow
-      Layout.fillWidth: true
-      Layout.topMargin: Style.marginM
-      Layout.preferredHeight: implicitHeight
-      spacing: Style.marginM
+  Timer {
+    id: saveTimer
+    running: false
+    interval: 150
+    onTriggered: {
+      root.updateWidgetSettings(root.sectionId, root.widgetIndex, root.settingsCache);
+    }
+  }
 
-      Item {
-        Layout.fillWidth: true
-      }
-
-      NButton {
-        text: I18n.tr("common.close")
-        outlined: true
-        onClicked: root.close()
-      }
-
-      NButton {
-        text: I18n.tr("common.apply", "Apply")
-        icon: "check"
-        onClicked: {
-          if (settingsLoader.item && settingsLoader.item.saveSettings) {
-            var newSettings = settingsLoader.item.saveSettings();
-            root.updateWidgetSettings(root.sectionId, root.widgetIndex, newSettings);
-          }
-        }
+  Connections {
+    target: settingsLoader.item
+    ignoreUnknownSignals: true
+    function onSettingsChanged(newSettings) {
+      if (newSettings) {
+        root.settingsCache = newSettings;
+        saveTimer.start();
       }
     }
+  }
+
+  function saveAndClose() {
+    if (settingsLoader.item && typeof settingsLoader.item.saveSettings === 'function') {
+      var newSettings = settingsLoader.item.saveSettings();
+      if (newSettings) {
+        root.updateWidgetSettings(root.sectionId, root.widgetIndex, newSettings);
+      }
+    }
+    root.close();
   }
 
   function loadWidgetSettings() {

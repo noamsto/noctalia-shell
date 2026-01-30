@@ -182,7 +182,9 @@
       "hide-widget-when-zero-unread-description": "Het meldingspictogram verbergen wanneer er geen ongelezen meldingen zijn.",
       "hide-widget-when-zero-unread-label": "Pictogram verbergen zonder ongelezen meldingen",
       "show-unread-badge-description": "Toon een badge met het aantal ongelezen meldingen.",
-      "show-unread-badge-label": "Ongelezen-badge tonen"
+      "show-unread-badge-label": "Ongelezen-badge tonen",
+      "unread-badge-color-description": "Selecteer de kleur voor de badge van ongelezen meldingen.",
+      "unread-badge-color-label": "Kleur van de ongelezen badge"
     },
     "section-editor": {
       "placeholder": "Selecteer een widget om toe te voegen...",
@@ -270,6 +272,8 @@
       "label-mode-label": "Labelmodus",
       "occupied-color-description": "Stel de achtergrondkleur in voor bezette Workspaces.",
       "occupied-color-label": "Kleur van bezette workspace",
+      "reverse-scrolling-description": "Keer de richting van het wisselen van werkruimtes om bij het scrollen.",
+      "reverse-scrolling-label": "Omgekeerd scrollen",
       "show-applications-description": "Toon applicatiepictogrammen in elke werkruimte.",
       "show-applications-label": "Toon applicaties",
       "show-badge-description": "Toon de werkomgevingnummerbadge in gegroepeerde modus.",
@@ -1049,6 +1053,10 @@
       "settings-clip-wrap-text-label": "Klembordtekst omwikkelen",
       "settings-clipboard-history-description": "Toegang tot eerder gekopieerde items vanuit de launcher.",
       "settings-clipboard-history-label": "Klembordgeschiedenis inschakelen",
+      "settings-clipboard-watch-image-description": "Volledige commandoreeks die aan wl-paste wordt doorgegeven voor afbeeldingswijzigingen. (herstart vereist)",
+      "settings-clipboard-watch-image-label": "Afbeelding Bewakingscommando",
+      "settings-clipboard-watch-text-description": "Volledige commandoreeks die aan wl-paste wordt doorgegeven voor tekstwijzigingen. (vereist herstart)",
+      "settings-clipboard-watch-text-label": "Tekst volgcommando",
       "settings-custom-launch-prefix-description": "Voorzie commando's van een aangepaste launcher-prefix (bijv. 'runapp' voor systemd-integratie).",
       "settings-custom-launch-prefix-enabled-description": "Gebruik een aangepaste prefix om applicaties te starten in plaats van de standaardmethode.",
       "settings-custom-launch-prefix-enabled-label": "Aangepaste startprefix inschakelen",
@@ -1112,6 +1120,8 @@
       "weather-show-in-calendar-label": "Weer in kalender weergeven"
     },
     "lock-screen": {
+      "allow-password-with-fprintd-description": "Wanneer fprintd (vingerafdrukauthenticatie) actief is, kunt u met deze optie nog steeds inloggen met uw wachtwoord in plaats van een vingerafdruk.",
+      "allow-password-with-fprintd-label": "Wachtwoordlogin toestaan met fprintd",
       "auto-start-auth-description": "start bijvoorbeeld automatisch de vingerafdrukauthenticatie zonder dat er een toetsaanslag of klik nodig is.",
       "auto-start-auth-label": "Automatische authenticatie bij opstarten",
       "compact-lockscreen-description": "Toon alleen de logininvoer en systeemknoppen, verberg weer- en mediawidgets.",

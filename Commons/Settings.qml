@@ -25,7 +25,7 @@ Singleton {
   - Default cache directory: ~/.cache/noctalia
   */
   readonly property alias data: adapter  // Used to access via Settings.data.xxx.yyy
-  readonly property int settingsVersion: 45
+  readonly property int settingsVersion: 46
   readonly property bool isDebug: Quickshell.env("NOCTALIA_DEBUG") === "1"
   readonly property string shellName: "noctalia"
   readonly property string configDir: Quickshell.env("NOCTALIA_CONFIG_DIR") || (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/" + shellName + "/"
@@ -47,11 +47,6 @@ Singleton {
     // ensure settings dir exists
     Quickshell.execDetached(["mkdir", "-p", configDir]);
     Quickshell.execDetached(["mkdir", "-p", cacheDir]);
-
-    // Ensure PAM config file exists in configDir (create once, never override)
-    if (!Quickshell.env("NOCTALIA_PAM_CONFIG")) {
-      ensurePamConfig();
-    }
 
     // Mark directories as created and trigger file loading
     directoriesCreated = true;
@@ -285,6 +280,7 @@ Singleton {
       property bool enableLockScreenCountdown: true
       property int lockScreenCountdownDuration: 10000
       property bool autoStartAuth: false
+      property bool allowPasswordWithFprintd: false
     }
 
     // ui
@@ -383,11 +379,13 @@ Singleton {
       property bool autoPasteClipboard: false
       property bool enableClipPreview: true
       property bool clipboardWrapText: true
+      property string clipboardWatchTextCommand: "wl-paste --type text --watch cliphist store"
+      property string clipboardWatchImageCommand: "wl-paste --type image --watch cliphist store"
       property string position: "center"  // Position: center, top_left, top_right, bottom_left, bottom_right, bottom_center, top_center
       property list<string> pinnedApps: []
       property bool useApp2Unit: false
       property bool sortByMostUsed: true
-      property string terminalCommand: "xterm -e"
+      property string terminalCommand: "alacritty -e"
       property bool customLaunchPrefixEnabled: false
       property string customLaunchPrefix: ""
       // View mode: "list" or "grid"
@@ -1239,7 +1237,7 @@ Singleton {
 
     // Delete deprecated user settings from the wiget
     for (const k of Object.keys(widget)) {
-      if (k === "id" || k === "allowUserSettings") {
+      if (k === "id") {
         continue;
       }
       if (!keys.includes(k)) {
@@ -1250,7 +1248,7 @@ Singleton {
     // Inject missing default setting (metaData) from BarWidgetRegistry
     for (var i = 0; i < keys.length; i++) {
       const k = keys[i];
-      if (k === "id" || k === "allowUserSettings") {
+      if (k === "id") {
         continue;
       }
 
