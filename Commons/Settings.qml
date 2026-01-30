@@ -48,6 +48,9 @@ Singleton {
     Quickshell.execDetached(["mkdir", "-p", configDir]);
     Quickshell.execDetached(["mkdir", "-p", cacheDir]);
 
+    // Ensure PAM configs exist for lock screen authentication
+    ensurePamConfig();
+
     // Mark directories as created and trigger file loading
     directoriesCreated = true;
 
@@ -1149,8 +1152,10 @@ Singleton {
 
     // Fingerprint-only config
     // sufficient: if fprintd succeeds, auth passes; followed by deny as fallback
+    // Include both standard and NixOS paths
     var configContent = "";
     configContent += "auth sufficient pam_fprintd.so timeout=-1 max-tries=-1\n";
+    configContent += "auth sufficient /run/current-system/sw/lib/security/pam_fprintd.so timeout=-1 max-tries=-1\n";
     configContent += "auth required pam_deny.so\n";
 
     var script = `cat > '${fingerprintOnlyFileEsc}' << 'EOF'\n`;
