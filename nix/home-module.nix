@@ -267,13 +267,16 @@ in
         };
 
         # PAM configs for fingerprint authentication (NixOS requires full store paths)
+        # force = true because noctalia may create these files at runtime if they don't exist
         "noctalia/pam/fingerprint-only.conf" = lib.mkIf cfg.pam.fingerprint.enable {
+          force = true;
           text = ''
             auth sufficient ${pamFprintd} timeout=-1 max-tries=-1
             auth required ${pamDeny}
           '';
         };
         "noctalia/pam/password-only.conf" = lib.mkIf cfg.pam.fingerprint.enable {
+          force = true;
           text = ''
             auth required ${pamUnix}
           '';
