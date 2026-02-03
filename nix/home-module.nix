@@ -266,19 +266,21 @@ in
               tomlFormat.generate "noctalia-user-templates.toml" cfg.user-templates;
         };
 
-        # PAM configs for fingerprint authentication (NixOS requires full store paths)
+        # PAM configs for lock screen authentication (NixOS requires full store paths)
         # force = true because noctalia may create these files at runtime if they don't exist
+        # password-only.conf is always needed for lock screen password authentication
+        "noctalia/pam/password-only.conf" = {
+          force = true;
+          text = ''
+            auth required ${pamUnix}
+          '';
+        };
+        # fingerprint-only.conf is only needed when fingerprint auth is enabled
         "noctalia/pam/fingerprint-only.conf" = lib.mkIf cfg.pam.fingerprint.enable {
           force = true;
           text = ''
             auth sufficient ${pamFprintd} timeout=-1 max-tries=-1
             auth required ${pamDeny}
-          '';
-        };
-        "noctalia/pam/password-only.conf" = lib.mkIf cfg.pam.fingerprint.enable {
-          force = true;
-          text = ''
-            auth required ${pamUnix}
           '';
         };
       }
